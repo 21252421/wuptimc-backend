@@ -7,23 +7,63 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-// Test
+/**
+ * Fake database (gratis / simpelt)
+ * Senere kan det være SQLite / Postgres
+ */
+const users = {};
+
+// TEST
 app.get("/", (req, res) => {
   res.send("WuptiMC backend kører 🚀");
 });
 
-// Login (simpel version)
-app.post("/login", (req, res) => {
-  const { username } = req.body;
-  if (!username) {
-    return res.status(400).json({ error: "Manglende brugernavn" });
+/**
+ * DISCORD LOGIN (SIMPLIFICERET DEMO)
+ * Senere kan vi koble ægte Discord OAuth
+ */
+app.post("/login/discord", (req, res) => {
+  const { discordName } = req.body;
+
+  if (!users[discordName]) {
+    users[discordName] = {
+      discordName,
+      role: discordName === "Wupti" ? "admin" : "spiller",
+      minecraftName: "",
+      email: ""
+    };
   }
 
-  res.json({
-    username,
-    coins: 100,
-    rank: "Member"
-  });
+  res.json(users[discordName]);
+});
+
+/**
+ * OPDATER PROFIL
+ */
+app.post("/profile/update", (req, res) => {
+  const { discordName, minecraftName, email } = req.body;
+
+  if (!users[discordName]) {
+    return res.status(403).json({ error: "Ikke logget ind" });
+  }
+
+  users[discordName].minecraftName = minecraftName;
+  users[discordName].email = email;
+
+  res.json(users[discordName]);
+});
+
+/**
+ * ADMIN – LIST ALLE BRUGERE
+ */
+app.get("/admin/users", (req, res) => {
+  const { discordName } = req.query;
+
+  if (!users[discordName] || users[discordName].role !== "admin") {
+    return res.status(403).json({ error: "Ingen adgang" });
+  }
+
+  res.json(Object.values(users));
 });
 
 app.listen(PORT, () => {
